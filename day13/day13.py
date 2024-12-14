@@ -30,7 +30,7 @@ for claw in claws:
     gcd_x = gcd(claw.ax, claw.bx)
     gcd_y = gcd(claw.ay, claw.by)
     if claw.px % gcd_x == 0 and claw.py % gcd_y == 0:
-        # Equation maybe has a solution
+        # Seperate equations for x and y are solvable
         b_press = int(
             (claw.ay * claw.px - claw.ax * claw.py)
             / (claw.bx * claw.ay - claw.by * claw.ax)
@@ -53,7 +53,7 @@ for claw in claws:
     gcd_x = gcd(claw.ax, claw.bx)
     gcd_y = gcd(claw.ay, claw.by)
     if claw.px % gcd_x == 0 and claw.py % gcd_y == 0:
-        # Equation maybe has a solution
+        # Seperate equations for x and y are solvable
         b_press = int(
             (claw.ay * claw.px - claw.ax * claw.py)
             / (claw.bx * claw.ay - claw.by * claw.ax)
