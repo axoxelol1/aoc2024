@@ -2,8 +2,6 @@ from __future__ import annotations
 import rustworkx as rx
 from rustworkx.generators import directed_grid_graph
 from collections import Counter
-from itertools import permutations
-from tqdm import tqdm
 
 # file_name, dim = "example.txt", 15
 file_name, dim = "input.txt", 141
@@ -15,13 +13,11 @@ start = 0
 end = 0
 
 path_nodes: set[int] = set()
-walls: set[int] = set()
 with open(file_name, "r") as f:
     lines = f.readlines()
     for y, line in enumerate(lines):
         for x, c in enumerate(line.strip()):
             if c == "#":
-                walls.add(y * dim + x)
                 G.remove_node(y * dim + x)
             else:
                 path_nodes.add(y * dim + x)
@@ -30,45 +26,60 @@ with open(file_name, "r") as f:
             elif c == "E":
                 end = y * dim + x
 
-all_shortest = rx.all_pairs_dijkstra_path_lengths(G, lambda _: 1)
+start_to_n = rx.dijkstra_shortest_path_lengths(G, start, lambda _: 1)
+end_to_n = rx.dijkstra_shortest_path_lengths(G, end, lambda _: 1)
+
 path = rx.dijkstra_shortest_paths(G, start, end)[end]
 
-cheats: Counter[int] = Counter()
-for wall in walls:
-    path_neighbours: list[int] = []
-    x, y = wall % dim, wall // dim
-    for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-        nx, ny = x + dx, y + dy
-        if 0 <= nx < dim and 0 <= ny < dim and ny * dim + nx not in walls:
-            path_neighbours.append(ny * dim + nx)
-    if len(path_neighbours) < 2:
-        continue
-    for pair in permutations(path_neighbours, 2):
+
+p1cheats: int = 0
+for i in range(len(path)):
+    x, y = path[i] % dim, path[i] // dim
+    for dx, dy in [
+        (0, 2),
+        (2, 0),
+        (0, -2),
+        (-2, 0),
+        (1, 1),
+        (-1, 1),
+        (1, -1),
+        (-1, -1),
+    ]:
+        if x + dx < 0 or x + dx >= dim or y + dy < 0 or y + dy >= dim:
+            continue
+        endid = (y + dy) * dim + x + dx
+        if endid not in path_nodes:
+            continue
         cheat_length = int(
-            (all_shortest[start][pair[0]] if start != pair[0] else 0)
-            + (all_shortest[pair[1]][end] if end != pair[1] else 0)
+            (start_to_n[path[i]] if path[i] != start else 0)
+            + (end_to_n[endid] if endid != end else 0)
             + 2
         )
-        no_cheat = int(all_shortest[start][end])
-        cheats[no_cheat - cheat_length] += 1
+        if len(path) - cheat_length >= 100:
+            p1cheats += 1
 
-print(f"Part 1: {sum([v for k, v in sorted(cheats.items()) if k >= 100])}")
+print(f"Part 1: {p1cheats}")
 
-p2cheats: Counter[int] = Counter()
-
-for i in tqdm(range(len(path))):
-    for j in range(i + 1, len(path)):
-        pair = (path[i], path[j])
-        bird_path = abs(pair[0] // dim - pair[1] // dim) + abs(
-            pair[0] % dim - pair[1] % dim
+p2cheats: int = 0
+for i in range(len(path)):
+    x, y = path[i] % dim, path[i] // dim
+    cheat_ends: set[tuple[int, int]] = set()
+    for d in range(2, 21):
+        for dx in range(-d, d + 1):
+            for dy_sign in [-1, 1]:
+                dy = (d - abs(dx)) * dy_sign
+                if x + dx < 0 or x + dx >= dim or y + dy < 0 or y + dy >= dim:
+                    continue
+                if (y + dy) * dim + x + dx not in path_nodes:
+                    continue
+                cheat_ends.add((((y + dy) * dim + x + dx), d))
+    for endid, d in cheat_ends:
+        cheat_length = int(
+            (start_to_n[path[i]] if path[i] != start else 0)
+            + (end_to_n[endid] if endid != end else 0)
+            + d
         )
-        if bird_path <= 20:
-            cheat_length = int(
-                (all_shortest[start][pair[0]] if start != pair[0] else 0)
-                + (all_shortest[pair[1]][end] if end != pair[1] else 0)
-                + bird_path
-            )
-            no_cheat = int(all_shortest[start][end])
-            p2cheats[no_cheat - cheat_length] += 1
+        if len(path) - cheat_length >= 100:
+            p2cheats += 1
 
-print(f"Part 2: {sum([v for k, v in sorted(p2cheats.items()) if k >= 100])}")
+print(f"Part 2: {p2cheats}")
